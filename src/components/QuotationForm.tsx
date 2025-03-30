@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -98,10 +97,18 @@ const QuotationForm: React.FC<QuotationFormProps> = ({
   };
 
   const handleSubmit = (data: QuotationFormValues) => {
+    // Fix: Ensure all required properties are properly provided
     onSubmit({
-      ...data,
-      total,
-      createdBy: '1', // In a real app, this would be the current user's ID
+      clientId: data.clientId,     // Explicitly set required properties
+      items: data.items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        discount: item.discount
+      })),
+      status: data.status,         // Ensure status is explicitly set
+      total,                       // Include total
+      createdBy: '1',              // Include createdBy
     });
   };
   

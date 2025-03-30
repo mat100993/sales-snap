@@ -11,9 +11,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-MU', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'MUR',
   }).format(amount);
 }
 
@@ -68,8 +68,9 @@ export function generateQuotationPDF(
   doc.text("Motorway M2, Bois Marchand,", margin, 60);
   doc.text("Terre Rouge 21401,", margin, 65);
   doc.text("Mauritius", margin, 70);
-  doc.text("Phone: (230) 249-3800", margin, 75);
-  doc.text("Email: info@archemics.com", margin, 80);
+  doc.text("Phone: +230 248 3682", margin, 75);
+  doc.text("Tel: +230 249 3191", margin, 80);
+  doc.text("Email: info@archemics.mu", margin, 85);
   
   // Quotation info
   doc.setFont("helvetica", "bold");
@@ -85,15 +86,15 @@ export function generateQuotationPDF(
   
   // Client info
   doc.setFont("helvetica", "bold");
-  doc.text("Client Information:", margin, 95);
+  doc.text("Client Information:", margin, 100);
   doc.setFont("helvetica", "normal");
-  doc.text(`Name: ${client.name} ${client.surname}`, margin, 105);
-  doc.text(`Company: ${client.company}`, margin, 110);
-  doc.text(`Phone: ${client.phone}`, margin, 115);
-  doc.text(`Email: ${client.email}`, margin, 120);
+  doc.text(`Name: ${client.name} ${client.surname}`, margin, 110);
+  doc.text(`Company: ${client.company}`, margin, 115);
+  doc.text(`Phone: ${client.phone}`, margin, 120);
+  doc.text(`Email: ${client.email}`, margin, 125);
   
   // Items table header
-  let y = 140;
+  let y = 145;
   doc.setFillColor(0, 160, 205, 0.2); // Light blue background
   doc.rect(margin, y, pageWidth - (margin * 2), 10, 'F');
   doc.setFont("helvetica", "bold");
@@ -167,4 +168,3 @@ export function generateQuotationPDF(
   
   return doc.output('blob');
 }
-

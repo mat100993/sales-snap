@@ -11,22 +11,38 @@ interface ProductCardProps {
   product: Product;
   onEdit: (product: Product) => void;
   onDelete?: (productId: string) => void;
+  imageSize?: 'small' | 'medium' | 'large';
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDelete }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  onEdit, 
+  onDelete,
+  imageSize = 'medium'
+}) => {
+  const imageSizeClasses = {
+    small: 'h-32',
+    medium: 'h-48',
+    large: 'h-64'
+  };
+
   return (
     <Card className="h-full">
       {product.imageUrl ? (
-        <div className="relative w-full h-48">
+        <div className={`relative w-full ${imageSizeClasses[imageSize]}`}>
           <img 
             src={product.imageUrl} 
             alt={product.name} 
             className="w-full h-full object-cover rounded-t-md"
           />
         </div>
-      ) : null}
+      ) : (
+        <div className={`relative w-full ${imageSizeClasses[imageSize]} bg-gray-100 flex items-center justify-center rounded-t-md`}>
+          <Image className="h-12 w-12 text-gray-300" />
+        </div>
+      )}
       
-      <CardContent className={`${product.imageUrl ? 'pt-4' : 'pt-6'}`}>
+      <CardContent className="pt-4">
         <div className="flex justify-between items-start mb-2">
           <h3 className="font-semibold text-lg truncate">{product.name}</h3>
           <ProductStatusBadge status={product.status} />

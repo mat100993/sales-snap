@@ -4,6 +4,7 @@ import { twMerge } from "tailwind-merge"
 import { Quotation, QuotationItem, Client, Product } from "@/types"
 import jsPDF from "jspdf"
 import { format } from "date-fns"
+import { useAuth } from "@/context/AuthContext"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -24,10 +25,16 @@ export function formatDateTime(date: Date): string {
   return format(date, 'MMM dd, yyyy h:mm a');
 }
 
+export interface PDFOptions {
+  includeImages?: boolean;
+}
+
 export function generateQuotationPDF(
   quotation: Quotation,
   client: Client,
-  products: Product[]
+  products: Product[],
+  salesName: string,
+  options?: PDFOptions
 ): Blob {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -41,43 +48,53 @@ export function generateQuotationPDF(
     doc.text(text, textX, y);
   };
   
+  // Add company logo
+  const logoWidth = 40;
+  const logoHeight = 20;
+  const logoX = margin;
+  const logoY = 15;
+  doc.addImage("/lovable-uploads/4df45fc0-bb03-42d6-9c0e-5c021dcfb51f.png", "PNG", logoX, logoY, logoWidth, logoHeight);
+  
   // Header
   doc.setFontSize(20);
-  doc.setTextColor(41, 99, 235); // Blue color
-  centerText("QUOTATION", 30, 22);
+  doc.setTextColor(0, 160, 205); // Archemics blue color
+  centerText("QUOTATION", 45, 22);
   doc.setTextColor(0, 0, 0); // Reset to black
   
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text("SalesSnap, Inc.", margin, 40);
+  doc.text("Archemics Ltd.", margin, 55);
   doc.setFont("helvetica", "normal");
-  doc.text("123 Business Avenue", margin, 45);
-  doc.text("Business City, 12345", margin, 50);
-  doc.text("Phone: (123) 456-7890", margin, 55);
-  doc.text("Email: sales@salessnap.com", margin, 60);
+  doc.text("Motorway M2, Bois Marchand,", margin, 60);
+  doc.text("Terre Rouge 21401,", margin, 65);
+  doc.text("Mauritius", margin, 70);
+  doc.text("Phone: (230) 249-3800", margin, 75);
+  doc.text("Email: info@archemics.com", margin, 80);
   
   // Quotation info
   doc.setFont("helvetica", "bold");
-  doc.text("Quotation Number:", 120, 40);
-  doc.text("Date:", 120, 45);
-  doc.text("Status:", 120, 50);
+  doc.text("Quotation Number:", 120, 55);
+  doc.text("Date:", 120, 60);
+  doc.text("Status:", 120, 65);
+  doc.text("Sales Representative:", 120, 70);
   doc.setFont("helvetica", "normal");
-  doc.text(`Q-${quotation.id}`, 170, 40);
-  doc.text(format(quotation.createdAt, 'MMM dd, yyyy'), 170, 45);
-  doc.text(quotation.status.toUpperCase(), 170, 50);
+  doc.text(`Q-${quotation.id}`, 170, 55);
+  doc.text(format(quotation.createdAt, 'MMM dd, yyyy'), 170, 60);
+  doc.text(quotation.status.toUpperCase(), 170, 65);
+  doc.text(salesName, 170, 70);
   
   // Client info
   doc.setFont("helvetica", "bold");
-  doc.text("Client Information:", margin, 75);
+  doc.text("Client Information:", margin, 95);
   doc.setFont("helvetica", "normal");
-  doc.text(`Name: ${client.name} ${client.surname}`, margin, 85);
-  doc.text(`Company: ${client.company}`, margin, 90);
-  doc.text(`Phone: ${client.phone}`, margin, 95);
-  doc.text(`Email: ${client.email}`, margin, 100);
+  doc.text(`Name: ${client.name} ${client.surname}`, margin, 105);
+  doc.text(`Company: ${client.company}`, margin, 110);
+  doc.text(`Phone: ${client.phone}`, margin, 115);
+  doc.text(`Email: ${client.email}`, margin, 120);
   
   // Items table header
-  let y = 120;
-  doc.setFillColor(240, 249, 255); // Light blue background
+  let y = 140;
+  doc.setFillColor(0, 160, 205, 0.2); // Light blue background
   doc.rect(margin, y, pageWidth - (margin * 2), 10, 'F');
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
@@ -91,20 +108,43 @@ export function generateQuotationPDF(
   y += 10;
   doc.setFont("helvetica", "normal");
   
+  let itemsHeight = 0;
+  const imageHeight = options?.includeImages ? 25 : 0;
+  const rowHeight = options?.includeImages ? 35 : 10;
+  
   quotation.items.forEach((item: QuotationItem) => {
     const product = products.find(p => p.id === item.productId);
     if (product) {
       const lineTotal = item.quantity * item.price;
       const discount = item.discount ? lineTotal * (item.discount / 100) : 0;
       const totalAfterDiscount = lineTotal - discount;
+
+      // Add product image if option is enabled and image exists
+      if (options?.includeImages && product.imageUrl) {
+        try {
+          // Add product image (use a maximum width of 25 and height of 25)
+          doc.addImage(product.imageUrl, "JPEG", margin + 5, y, 25, imageHeight);
+        } catch (error) {
+          console.error("Error adding image:", error);
+        }
+      }
       
-      doc.text(product.name, margin + 5, y + 6);
-      doc.text(item.quantity.toString(), 100, y + 6);
-      doc.text(formatCurrency(item.price), 130, y + 6);
-      doc.text(item.discount ? `${item.discount}%` : '-', 160, y + 6);
-      doc.text(formatCurrency(totalAfterDiscount), 190, y + 6);
+      // Item details
+      const textY = options?.includeImages ? y + 15 : y + 6;
+      doc.text(product.name, options?.includeImages ? margin + 35 : margin + 5, textY);
+      doc.text(item.quantity.toString(), 100, textY);
+      doc.text(formatCurrency(item.price), 130, textY);
+      doc.text(item.discount ? `${item.discount}%` : '-', 160, textY);
+      doc.text(formatCurrency(totalAfterDiscount), 190, textY);
       
-      y += 10;
+      y += rowHeight;
+      itemsHeight += rowHeight;
+      
+      // Add a new page if we're getting close to the bottom
+      if (y > 250) {
+        doc.addPage();
+        y = 20;
+      }
     }
   });
   
@@ -118,12 +158,13 @@ export function generateQuotationPDF(
   doc.text(formatCurrency(quotation.total), 190, y);
   
   // Footer
-  y = 250;
+  const footerY = Math.min(y + 30, 270);
   doc.setFontSize(9);
   doc.setFont("helvetica", "italic");
   doc.setTextColor(100, 100, 100);
-  doc.text("Thank you for your business. This quotation is valid for 30 days.", margin, y);
-  doc.text(`Generated on ${format(new Date(), 'MMMM dd, yyyy')}`, margin, y + 5);
+  doc.text("Thank you for your business. This quotation is valid for 30 days.", margin, footerY);
+  doc.text(`Generated by ${salesName} on ${format(new Date(), 'MMMM dd, yyyy')}`, margin, footerY + 5);
   
   return doc.output('blob');
 }
+

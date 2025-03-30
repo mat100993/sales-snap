@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import PageHeader from '@/components/PageHeader';
-import { Plus, FileText, Search, Send, Download } from 'lucide-react';
+import { Plus, FileText, Search, Send, Download, Image as ImageIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,21 +12,26 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { QuotationForm } from '@/components';
 import { QuotationStatusBadge } from '@/components/StatusBadge';
 import { useData } from '@/context/DataContext';
+import { useAuth } from '@/context/AuthContext';
 import { Quotation } from '@/types';
 import { formatCurrency, formatDate, generateQuotationPDF } from '@/lib/utils';
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Switch } from '@/components/ui/switch';
 
 const Quotations: React.FC = () => {
   const { quotations, clients, products, addQuotation, updateQuotation, deleteQuotation } = useData();
+  const { currentUser } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingQuotation, setEditingQuotation] = useState<Quotation | undefined>(undefined);
   const [quotationToDelete, setQuotationToDelete] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [includeImages, setIncludeImages] = useState(false);
 
   // Filter quotations based on search query
   const filteredQuotations = searchQuery
@@ -77,11 +82,16 @@ const Quotations: React.FC = () => {
       return;
     }
     
-    const pdfBlob = generateQuotationPDF(quotation, client, products);
+    const salesName = currentUser ? currentUser.fullName : "Unknown";
+    
+    const pdfBlob = generateQuotationPDF(quotation, client, products, salesName, {
+      includeImages: includeImages
+    });
+    
     const url = URL.createObjectURL(pdfBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Quotation-${quotation.id}.pdf`;
+    a.download = `Archemics_Quotation-${quotation.id}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -97,17 +107,21 @@ const Quotations: React.FC = () => {
       return;
     }
 
+    const salesName = currentUser ? currentUser.fullName : "Unknown";
+    
     // First, generate the PDF
-    const pdfBlob = generateQuotationPDF(quotation, client, products);
+    const pdfBlob = generateQuotationPDF(quotation, client, products, salesName, {
+      includeImages: includeImages
+    });
     
     // Options for sharing
     if (navigator.share) {
       // Web Share API
-      const file = new File([pdfBlob], `Quotation-${quotation.id}.pdf`, { type: 'application/pdf' });
+      const file = new File([pdfBlob], `Archemics_Quotation-${quotation.id}.pdf`, { type: 'application/pdf' });
       
       navigator.share({
         title: `Quotation for ${client.name} ${client.surname}`,
-        text: `Here's your quotation from SalesSnap`,
+        text: `Here's your quotation from Archemics Ltd.`,
         files: [file]
       }).catch(err => {
         console.error("Error sharing:", err);
@@ -119,8 +133,8 @@ const Quotations: React.FC = () => {
     
     function fallbackShare() {
       // Fallback for email
-      const emailSubject = `Quotation for ${client.name} ${client.surname}`;
-      const emailBody = `Dear ${client.name},\n\nPlease find attached your quotation. Thank you for your business.\n\nRegards,\nSalesSnap Team`;
+      const emailSubject = `Quotation from Archemics Ltd. for ${client.name} ${client.surname}`;
+      const emailBody = `Dear ${client.name},\n\nPlease find attached your quotation. Thank you for your business.\n\nRegards,\n${salesName}\nArchemics Ltd.`;
       
       if (client.email) {
         const mailtoLink = `mailto:${client.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
@@ -154,8 +168,8 @@ const Quotations: React.FC = () => {
         }}
       />
 
-      <div className="mb-6">
-        <div className="relative">
+      <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <div className="relative w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
           <Input
             placeholder="Search quotations..."
@@ -163,6 +177,21 @@ const Quotations: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Switch 
+            id="include-images" 
+            checked={includeImages}
+            onCheckedChange={setIncludeImages}
+          />
+          <label 
+            htmlFor="include-images" 
+            className="text-sm font-medium flex items-center cursor-pointer"
+          >
+            <ImageIcon size={16} className="mr-1" />
+            Include product images in PDF
+          </label>
         </div>
       </div>
 
@@ -237,6 +266,7 @@ const Quotations: React.FC = () => {
                           <DropdownMenuItem onClick={() => handleShareQuotation(quotation)}>
                             Email to Client
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleShareQuotation(quotation)}>
                             Send via WhatsApp
                           </DropdownMenuItem>

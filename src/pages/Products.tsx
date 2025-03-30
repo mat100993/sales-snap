@@ -5,13 +5,14 @@ import PageHeader from '@/components/PageHeader';
 import ProductForm from '@/components/ProductForm';
 import ProductCard from '@/components/ProductCard';
 import SearchBar from '@/components/SearchBar';
-import { Plus, Package } from 'lucide-react';
+import { Plus, Package, ImageIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useData } from '@/context/DataContext';
 import { useAuth } from '@/context/AuthContext';
 import { Product } from '@/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Switch } from '@/components/ui/switch';
 
 const Products: React.FC = () => {
   const { products, addProduct, updateProduct, deleteProduct, searchProducts } = useData();
@@ -20,9 +21,12 @@ const Products: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [showOnlyWithImages, setShowOnlyWithImages] = useState(false);
 
-  // Filter products based on search query
-  const filteredProducts = searchQuery ? searchProducts(searchQuery) : products;
+  // Filter products based on search query and image filter
+  const filteredProducts = searchQuery 
+    ? searchProducts(searchQuery).filter(product => !showOnlyWithImages || product.imageUrl)
+    : products.filter(product => !showOnlyWithImages || product.imageUrl);
 
   const handleAddProduct = (product: Omit<Product, 'id' | 'createdAt'>) => {
     addProduct(product);
@@ -70,15 +74,31 @@ const Products: React.FC = () => {
         } : undefined}
       />
 
-      <div className="mb-6">
-        <SearchBar onSearch={setSearchQuery} placeholder="Search products by name, category, or tags..." />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="w-full sm:max-w-lg">
+          <SearchBar onSearch={setSearchQuery} placeholder="Search products by name, category, or tags..." />
+        </div>
+        <div className="flex items-center space-x-2">
+          <Switch 
+            id="image-filter"
+            checked={showOnlyWithImages}
+            onCheckedChange={setShowOnlyWithImages}
+          />
+          <label 
+            htmlFor="image-filter" 
+            className="text-sm font-medium flex items-center cursor-pointer"
+          >
+            <ImageIcon size={16} className="mr-1" />
+            Show only with images
+          </label>
+        </div>
       </div>
 
       {filteredProducts.length === 0 ? (
         <div className="bg-white rounded-lg border p-8 text-center">
           <h3 className="text-lg font-medium text-gray-700 mb-2">No products found</h3>
           <p className="text-gray-500 mb-4">
-            {searchQuery
+            {searchQuery || showOnlyWithImages
               ? "No products match your search criteria."
               : "You haven't added any products yet."}
           </p>

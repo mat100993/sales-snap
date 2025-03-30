@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Image } from 'lucide-react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ProductStatusBadge } from './StatusBadge';
@@ -16,7 +16,17 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDelete }) => {
   return (
     <Card className="h-full">
-      <CardContent className="pt-6">
+      {product.imageUrl ? (
+        <div className="relative w-full h-48">
+          <img 
+            src={product.imageUrl} 
+            alt={product.name} 
+            className="w-full h-full object-cover rounded-t-md"
+          />
+        </div>
+      ) : null}
+      
+      <CardContent className={`${product.imageUrl ? 'pt-4' : 'pt-6'}`}>
         <div className="flex justify-between items-start mb-2">
           <h3 className="font-semibold text-lg truncate">{product.name}</h3>
           <ProductStatusBadge status={product.status} />

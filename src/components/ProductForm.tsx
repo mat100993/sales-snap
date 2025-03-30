@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Product } from '@/types';
+import { Image, Upload, X } from 'lucide-react';
 
 const productSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
@@ -47,6 +48,7 @@ interface ProductFormProps {
 
 const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, product, onCancel }) => {
   const [tags, setTags] = useState<string[]>(product?.tags || []);
+  const [imageUrl, setImageUrl] = useState<string | undefined>(product?.imageUrl);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -73,6 +75,20 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, product, onCancel }
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // In a real app, this would upload to a server or cloud storage
+      // For now, we'll use a local URL
+      const url = URL.createObjectURL(file);
+      setImageUrl(url);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageUrl(undefined);
+  };
+
   const handleSubmit = (data: ProductFormValues) => {
     onSubmit({
       name: data.name,
@@ -82,13 +98,55 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, product, onCancel }
       stock: Number(data.stock),
       status: data.status,
       tags,
-      imageUrl: product?.imageUrl
+      imageUrl
     });
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <div className="space-y-2">
+          <FormLabel>Product Image</FormLabel>
+          <div className="border rounded-md p-4">
+            {imageUrl ? (
+              <div className="relative">
+                <img 
+                  src={imageUrl} 
+                  alt="Product preview" 
+                  className="w-full h-48 object-contain mb-2"
+                />
+                <Button 
+                  type="button" 
+                  variant="destructive" 
+                  size="sm" 
+                  className="absolute top-2 right-2"
+                  onClick={handleRemoveImage}
+                >
+                  <X size={16} />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-48 bg-gray-50">
+                <Image size={48} className="text-gray-400 mb-2" />
+                <p className="text-sm text-gray-500 mb-4">No image uploaded</p>
+                <label htmlFor="image-upload" className="cursor-pointer">
+                  <div className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 text-sm">
+                    <Upload size={16} />
+                    <span>Upload Image</span>
+                  </div>
+                  <input 
+                    id="image-upload"
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageUpload} 
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            )}
+          </div>
+        </div>
+
         <FormField
           control={form.control}
           name="name"
@@ -102,6 +160,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, product, onCancel }
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name="description"
@@ -119,6 +178,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, product, onCancel }
             </FormItem>
           )}
         />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -147,6 +207,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, product, onCancel }
             )}
           />
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}

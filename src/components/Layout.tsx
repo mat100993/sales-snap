@@ -9,7 +9,7 @@ import {
   LogOut,
   Menu,
   X,
-  Flask,
+  TestTube,
   Truck,
   FileIcon,
   UserCog
@@ -47,7 +47,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Clients', path: '/clients', icon: Users },
     { name: 'Products', path: '/products', icon: Package },
     { name: 'Quotations', path: '/quotations', icon: FileText },
-    { name: 'Sample Requests', path: '/samples', icon: Flask },
+    { name: 'Sample Requests', path: '/samples', icon: TestTube },
     { name: 'Delivery Notes', path: '/delivery-notes', icon: Truck },
     { name: 'Documents', path: '/documents', icon: FileIcon },
   ];

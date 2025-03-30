@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import PageHeader from '@/components/PageHeader';
@@ -96,9 +95,18 @@ const AdminUsers = () => {
 
   const onSubmit = (values: UserFormValues) => {
     if (editingUser) {
+      // For updates, we only need to send the fields that changed
       updateUser(editingUser.id, values);
     } else {
-      addUser(values);
+      // For new users, ensure all required fields are present
+      const newUser: Omit<UserType, 'id'> = {
+        username: values.username,
+        password: values.password,
+        fullName: values.fullName,
+        role: values.role,
+        active: values.active
+      };
+      addUser(newUser);
     }
     setIsAddDialogOpen(false);
     setEditingUser(null);

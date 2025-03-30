@@ -10,7 +10,7 @@ import { formatCurrency } from '@/lib/utils';
 interface ProductCardProps {
   product: Product;
   onEdit: (product: Product) => void;
-  onDelete: (productId: string) => void;
+  onDelete?: (productId: string) => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDelete }) => {
@@ -55,13 +55,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onEdit, onDelete }) 
         <Button size="sm" variant="outline" onClick={() => onEdit(product)}>
           <Edit className="h-4 w-4 mr-1" /> Edit
         </Button>
-        <Button 
-          size="sm" 
-          variant="destructive" 
-          onClick={() => onDelete(product.id)}
-        >
-          <Trash2 className="h-4 w-4 mr-1" /> Delete
-        </Button>
+        {onDelete && (
+          <Button 
+            size="sm" 
+            variant="destructive" 
+            onClick={() => onDelete(product.id)}
+          >
+            <Trash2 className="h-4 w-4 mr-1" /> Delete
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

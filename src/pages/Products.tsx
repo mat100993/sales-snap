@@ -9,11 +9,13 @@ import { Plus, Package } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useData } from '@/context/DataContext';
+import { useAuth } from '@/context/AuthContext';
 import { Product } from '@/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const Products: React.FC = () => {
   const { products, addProduct, updateProduct, deleteProduct, searchProducts } = useData();
+  const { isAdmin } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
@@ -47,8 +49,10 @@ const Products: React.FC = () => {
   };
 
   const handleEdit = (product: Product) => {
-    setEditingProduct(product);
-    setDialogOpen(true);
+    if (isAdmin) {
+      setEditingProduct(product);
+      setDialogOpen(true);
+    }
   };
 
   return (
@@ -56,14 +60,14 @@ const Products: React.FC = () => {
       <PageHeader 
         title="Products" 
         description="Manage your product catalog"
-        action={{
+        action={isAdmin ? {
           label: "Add Product",
           onClick: () => {
             setEditingProduct(undefined);
             setDialogOpen(true);
           },
           icon: <Package size={18} />
-        }}
+        } : undefined}
       />
 
       <div className="mb-6">
@@ -78,9 +82,11 @@ const Products: React.FC = () => {
               ? "No products match your search criteria."
               : "You haven't added any products yet."}
           </p>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Add Product
-          </Button>
+          {isAdmin && (
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Add Product
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -89,42 +95,46 @@ const Products: React.FC = () => {
               key={product.id}
               product={product}
               onEdit={handleEdit}
-              onDelete={handleDeleteProduct}
+              onDelete={isAdmin ? handleDeleteProduct : undefined}
             />
           ))}
         </div>
       )}
 
-      {/* Product Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingProduct ? 'Edit' : 'Add'} Product</DialogTitle>
-          </DialogHeader>
-          <ProductForm
-            onSubmit={editingProduct ? handleUpdateProduct : handleAddProduct}
-            product={editingProduct}
-            onCancel={() => setDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Product Add/Edit Dialog - Only for Admin */}
+      {isAdmin && (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{editingProduct ? 'Edit' : 'Add'} Product</DialogTitle>
+            </DialogHeader>
+            <ProductForm
+              onSubmit={editingProduct ? handleUpdateProduct : handleAddProduct}
+              product={editingProduct}
+              onCancel={() => setDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {/* Confirm Delete Dialog */}
-      <AlertDialog open={!!productToDelete} onOpenChange={() => setProductToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the product.
-              Products that are used in quotations may cause issues if deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Confirm Delete Dialog - Only for Admin */}
+      {isAdmin && (
+        <AlertDialog open={!!productToDelete} onOpenChange={() => setProductToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the product.
+                Products that are used in quotations may cause issues if deleted.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </Layout>
   );
 };

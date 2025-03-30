@@ -47,6 +47,53 @@ export interface SalesRep {
   company?: string;
 }
 
+export interface User {
+  id: string;
+  username: string;
+  password: string; // In a real app, this would be hashed
+  role: 'admin' | 'sales' | 'manager';
+  fullName: string;
+  active: boolean;
+}
+
+export interface SampleRequest {
+  id: string;
+  productIds: string[];
+  clientId: string;
+  notes: string;
+  status: 'pending' | 'approved' | 'rejected' | 'delivered';
+  requestedBy: string;
+  requestedAt: Date;
+  approvedBy?: string;
+  approvedAt?: Date;
+}
+
+export interface DeliveryNote {
+  id: string;
+  clientId: string;
+  items: DeliveryItem[];
+  status: 'pending' | 'approved' | 'rejected' | 'delivered';
+  requestedBy: string;
+  requestedAt: Date;
+  approvedBy?: string;
+  approvedAt?: Date;
+  notes?: string;
+}
+
+export interface DeliveryItem {
+  productId: string;
+  quantity: number;
+}
+
+export interface DocumentFile {
+  id: string;
+  productId: string;
+  type: 'TDS' | 'SDS';
+  filename: string;
+  fileUrl: string;
+  uploadedAt: Date;
+}
+
 export interface DashboardStats {
   totalQuotations: number;
   totalClients: number;

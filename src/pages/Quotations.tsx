@@ -2,27 +2,18 @@
 import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import PageHeader from '@/components/PageHeader';
-import { Plus, FileText, Search, Send, Download, Image as ImageIcon } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
-import { QuotationForm } from '@/components';
-import { QuotationStatusBadge } from '@/components/StatusBadge';
+  QuotationList,
+  QuotationSearch,
+  QuotationDialogs
+} from '@/components';
 import { useData } from '@/context/DataContext';
 import { useAuth } from '@/context/AuthContext';
 import { Quotation } from '@/types';
-import { formatCurrency, formatDate, generateQuotationPDF, calculateVAT } from '@/lib/utils';
+import { generateQuotationPDF } from '@/lib/utils';
 import { toast } from "sonner";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Switch } from '@/components/ui/switch';
 
 const Quotations: React.FC = () => {
   const { quotations, clients, products, addQuotation, updateQuotation, deleteQuotation } = useData();
@@ -153,6 +144,14 @@ const Quotations: React.FC = () => {
     }
   };
 
+  const handleSubmit = (quotation: Omit<Quotation, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (editingQuotation) {
+      handleUpdateQuotation(quotation);
+    } else {
+      handleAddQuotation(quotation);
+    }
+  };
+
   return (
     <Layout>
       <PageHeader 
@@ -168,173 +167,31 @@ const Quotations: React.FC = () => {
         }}
       />
 
-      <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full sm:max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-          <Input
-            placeholder="Search quotations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Switch 
-            id="include-images" 
-            checked={includeImages}
-            onCheckedChange={setIncludeImages}
-          />
-          <label 
-            htmlFor="include-images" 
-            className="text-sm font-medium flex items-center cursor-pointer"
-          >
-            <ImageIcon size={16} className="mr-1" />
-            Include product images in PDF
-          </label>
-        </div>
-      </div>
+      <QuotationSearch
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        includeImages={includeImages}
+        onIncludeImagesChange={setIncludeImages}
+      />
 
-      {filteredQuotations.length === 0 ? (
-        <div className="bg-white rounded-lg border p-8 text-center">
-          <h3 className="text-lg font-medium text-gray-700 mb-2">No quotations found</h3>
-          <p className="text-gray-500 mb-4">
-            {searchQuery
-              ? "No quotations match your search criteria."
-              : "You haven't created any quotations yet."}
-          </p>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Create Quotation
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredQuotations.map(quotation => {
-            const client = clients.find(c => c.id === quotation.clientId);
-            const vatAmount = calculateVAT(quotation.total);
-            const totalWithVAT = quotation.total + vatAmount;
-            
-            return (
-              <Card key={quotation.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">
-                        {client ? `${client.name} ${client.surname}` : 'Unknown Client'}
-                      </CardTitle>
-                      <p className="text-sm text-gray-500">{client?.company}</p>
-                    </div>
-                    <QuotationStatusBadge status={quotation.status} />
-                  </div>
-                </CardHeader>
-                <CardContent className="pb-2">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500">Quotation #</p>
-                      <p>{quotation.id}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Date</p>
-                      <p>{formatDate(quotation.createdAt)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Amount</p>
-                      <p>{formatCurrency(quotation.total)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500">Total (inc. VAT)</p>
-                      <p className="font-semibold">{formatCurrency(totalWithVAT)}</p>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="pt-2">
-                  <div className="flex w-full justify-between items-center">
-                    <div className="flex items-center space-x-2">
-                      <FileText className="text-gray-400" size={16} />
-                      <span className="text-sm text-gray-500">
-                        {quotation.items.length} item{quotation.items.length !== 1 && 's'}
-                      </span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleGeneratePDF(quotation)}
-                      >
-                        <Download className="h-4 w-4 mr-1" /> PDF
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="sm">
-                            <Send className="h-4 w-4 mr-1" /> Share
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleShareQuotation(quotation)}>
-                            Email to Client
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleShareQuotation(quotation)}>
-                            Send via WhatsApp
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEdit(quotation)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDeleteQuotation(quotation.id)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                </CardFooter>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      <QuotationList 
+        quotations={filteredQuotations}
+        clients={clients}
+        onEdit={handleEdit}
+        onDelete={handleDeleteQuotation}
+        onGeneratePDF={handleGeneratePDF}
+        onShareQuotation={handleShareQuotation}
+      />
 
-      {/* Quotation Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingQuotation ? 'Edit' : 'Create'} Quotation</DialogTitle>
-            <DialogDescription>
-              Create a quotation with VAT (15%) included in the total calculation.
-            </DialogDescription>
-          </DialogHeader>
-          <QuotationForm
-            onSubmit={editingQuotation ? handleUpdateQuotation : handleAddQuotation}
-            quotation={editingQuotation}
-            onCancel={() => setDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirm Delete Dialog */}
-      <AlertDialog open={!!quotationToDelete} onOpenChange={() => setQuotationToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete this quotation.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <QuotationDialogs
+        dialogOpen={dialogOpen}
+        onDialogOpenChange={setDialogOpen}
+        editingQuotation={editingQuotation}
+        quotationToDelete={quotationToDelete}
+        onQuotationToDeleteChange={setQuotationToDelete}
+        onSubmit={handleSubmit}
+        onDelete={confirmDelete}
+      />
     </Layout>
   );
 };

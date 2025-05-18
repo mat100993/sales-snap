@@ -8,6 +8,8 @@ import ClientCard from './ClientCard';
 import ProductForm from './ProductForm';
 import ProductCard from './ProductCard';
 import QuotationForm from './QuotationForm';
+import QuotationHeaderFields from './quotation/QuotationHeaderFields';
+import QuotationItemFields from './quotation/QuotationItemFields';
 import { QuotationStatusBadge, ProductStatusBadge } from './StatusBadge';
 
 export {
@@ -20,6 +22,8 @@ export {
   ProductForm,
   ProductCard,
   QuotationForm,
+  QuotationHeaderFields,
+  QuotationItemFields,
   QuotationStatusBadge,
   ProductStatusBadge,
 };

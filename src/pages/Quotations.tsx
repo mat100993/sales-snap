@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import PageHeader from '@/components/PageHeader';
 import { Plus, FileText, Search, Send, Download, Image as ImageIcon } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,7 @@ import { QuotationStatusBadge } from '@/components/StatusBadge';
 import { useData } from '@/context/DataContext';
 import { useAuth } from '@/context/AuthContext';
 import { Quotation } from '@/types';
-import { formatCurrency, formatDate, generateQuotationPDF } from '@/lib/utils';
+import { formatCurrency, formatDate, generateQuotationPDF, calculateVAT } from '@/lib/utils';
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
@@ -211,6 +211,9 @@ const Quotations: React.FC = () => {
         <div className="space-y-4">
           {filteredQuotations.map(quotation => {
             const client = clients.find(c => c.id === quotation.clientId);
+            const vatAmount = calculateVAT(quotation.total);
+            const totalWithVAT = quotation.total + vatAmount;
+            
             return (
               <Card key={quotation.id}>
                 <CardHeader className="pb-2">
@@ -225,7 +228,7 @@ const Quotations: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="pb-2">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <p className="text-gray-500">Quotation #</p>
                       <p>{quotation.id}</p>
@@ -235,8 +238,12 @@ const Quotations: React.FC = () => {
                       <p>{formatDate(quotation.createdAt)}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500">Total</p>
-                      <p className="font-semibold">{formatCurrency(quotation.total)}</p>
+                      <p className="text-gray-500">Amount</p>
+                      <p>{formatCurrency(quotation.total)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Total (inc. VAT)</p>
+                      <p className="font-semibold">{formatCurrency(totalWithVAT)}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -301,6 +308,9 @@ const Quotations: React.FC = () => {
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingQuotation ? 'Edit' : 'Create'} Quotation</DialogTitle>
+            <DialogDescription>
+              Create a quotation with VAT (15%) included in the total calculation.
+            </DialogDescription>
           </DialogHeader>
           <QuotationForm
             onSubmit={editingQuotation ? handleUpdateQuotation : handleAddQuotation}

@@ -25,6 +25,13 @@ export function formatDateTime(date: Date): string {
   return format(date, 'MMM dd, yyyy h:mm a');
 }
 
+// VAT rate for Mauritius (15%)
+export const VAT_RATE = 0.15;
+
+export function calculateVAT(amount: number): number {
+  return amount * VAT_RATE;
+}
+
 export interface PDFOptions {
   includeImages?: boolean;
 }
@@ -100,10 +107,11 @@ export function generateQuotationPDF(
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
   doc.text("Item", margin + 5, y + 6);
-  doc.text("Quantity", 100, y + 6);
-  doc.text("Unit Price", 130, y + 6);
-  doc.text("Discount", 160, y + 6);
-  doc.text("Total", 190, y + 6);
+  doc.text("Quantity", 80, y + 6);
+  doc.text("Unit Price", 105, y + 6);
+  doc.text("VAT", 135, y + 6);
+  doc.text("Discount", 155, y + 6);
+  doc.text("Total", 180, y + 6);
   
   // Items
   y += 10;
@@ -113,12 +121,19 @@ export function generateQuotationPDF(
   const imageHeight = options?.includeImages ? 25 : 0;
   const rowHeight = options?.includeImages ? 35 : 10;
   
+  let subtotal = 0;
+  let vatTotal = 0;
+  
   quotation.items.forEach((item: QuotationItem) => {
     const product = products.find(p => p.id === item.productId);
     if (product) {
       const lineTotal = item.quantity * item.price;
       const discount = item.discount ? lineTotal * (item.discount / 100) : 0;
-      const totalAfterDiscount = lineTotal - discount;
+      const lineTotalAfterDiscount = lineTotal - discount;
+      const vat = calculateVAT(lineTotalAfterDiscount);
+      
+      subtotal += lineTotalAfterDiscount;
+      vatTotal += vat;
 
       // Add product image if option is enabled and image exists
       if (options?.includeImages && product.imageUrl) {
@@ -132,11 +147,13 @@ export function generateQuotationPDF(
       
       // Item details
       const textY = options?.includeImages ? y + 15 : y + 6;
-      doc.text(product.name, options?.includeImages ? margin + 35 : margin + 5, textY);
-      doc.text(item.quantity.toString(), 100, textY);
-      doc.text(formatCurrency(item.price), 130, textY);
-      doc.text(item.discount ? `${item.discount}%` : '-', 160, textY);
-      doc.text(formatCurrency(totalAfterDiscount), 190, textY);
+      const productNameX = options?.includeImages ? margin + 35 : margin + 5;
+      doc.text(product.name, productNameX, textY);
+      doc.text(item.quantity.toString(), 80, textY);
+      doc.text(formatCurrency(item.price), 105, textY);
+      doc.text(formatCurrency(vat / item.quantity), 135, textY);
+      doc.text(item.discount ? `${item.discount}%` : '-', 155, textY);
+      doc.text(formatCurrency(lineTotalAfterDiscount), 180, textY);
       
       y += rowHeight;
       itemsHeight += rowHeight;
@@ -149,14 +166,27 @@ export function generateQuotationPDF(
     }
   });
   
-  // Total
+  // Total section
   y += 10;
   doc.setDrawColor(200, 200, 200);
   doc.line(margin, y, pageWidth - margin, y);
   y += 10;
+  
+  // Subtotal
+  doc.setFont("helvetica", "normal");
+  doc.text("Amount:", 135, y);
+  doc.text(formatCurrency(subtotal), 180, y);
+  y += 8;
+  
+  // VAT
+  doc.text("VAT (15%):", 135, y);
+  doc.text(formatCurrency(vatTotal), 180, y);
+  y += 8;
+  
+  // Total
   doc.setFont("helvetica", "bold");
-  doc.text("Total:", 160, y);
-  doc.text(formatCurrency(quotation.total), 190, y);
+  doc.text("TOTAL:", 135, y);
+  doc.text(formatCurrency(subtotal + vatTotal), 180, y);
   
   // Footer
   const footerY = Math.min(y + 30, 270);

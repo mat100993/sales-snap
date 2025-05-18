@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,7 +24,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, Minus } from 'lucide-react';
 import { Client, Product, Quotation } from '@/types';
 import { useData } from '@/context/DataContext';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, VAT_RATE, calculateVAT } from '@/lib/utils';
 
 const quotationItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -53,6 +54,8 @@ const QuotationForm: React.FC<QuotationFormProps> = ({
 }) => {
   const { clients, products } = useData();
   const [total, setTotal] = useState(0);
+  const [subtotal, setSubtotal] = useState(0);
+  const [vatAmount, setVatAmount] = useState(0);
   
   const form = useForm<QuotationFormValues>({
     resolver: zodResolver(quotationSchema),
@@ -73,15 +76,22 @@ const QuotationForm: React.FC<QuotationFormProps> = ({
   
   // Calculate total when items change
   useEffect(() => {
-    const calculateTotal = () => {
-      return watchedItems.reduce((sum, item) => {
+    const calculateTotals = () => {
+      const itemSubtotal = watchedItems.reduce((sum, item) => {
         const lineTotal = item.price * item.quantity;
         const discountAmount = item.discount ? lineTotal * (item.discount / 100) : 0;
         return sum + (lineTotal - discountAmount);
       }, 0);
+      
+      const itemVAT = calculateVAT(itemSubtotal);
+      const finalTotal = itemSubtotal + itemVAT;
+      
+      setSubtotal(itemSubtotal);
+      setVatAmount(itemVAT);
+      setTotal(finalTotal);
     };
     
-    setTotal(calculateTotal());
+    calculateTotals();
   }, [watchedItems]);
 
   const handleAddItem = () => {
@@ -99,16 +109,16 @@ const QuotationForm: React.FC<QuotationFormProps> = ({
   const handleSubmit = (data: QuotationFormValues) => {
     // Fix: Ensure all required properties are properly provided
     onSubmit({
-      clientId: data.clientId,     // Explicitly set required properties
+      clientId: data.clientId,
       items: data.items.map(item => ({
         productId: item.productId,
         quantity: item.quantity,
         price: item.price,
         discount: item.discount
       })),
-      status: data.status,         // Ensure status is explicitly set
-      total,                       // Include total
-      createdBy: '1',              // Include createdBy
+      status: data.status,
+      total,
+      createdBy: '1',
     });
   };
   
@@ -335,6 +345,14 @@ const QuotationForm: React.FC<QuotationFormProps> = ({
             ))}
 
             <div className="border-t pt-4 text-right space-y-2">
+              <div className="flex justify-between">
+                <span>Amount:</span>
+                <span>{formatCurrency(subtotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>VAT (15%):</span>
+                <span>{formatCurrency(vatAmount)}</span>
+              </div>
               <div className="font-semibold flex justify-between">
                 <span>Total:</span>
                 <span>{formatCurrency(total)}</span>
